@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine as builder
+FROM golang:1.22-alpine AS base
 
 WORKDIR /app
 
@@ -11,16 +11,14 @@ RUN go mod download
 # Copy the source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o main ./cmd/server/main.go
+# Build server image
+FROM base AS server
+RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go && \
+    chmod +x server
+CMD ["./server"]
 
-# Create final image
-FROM alpine:3.19
-
-WORKDIR /app
-
-# Copy the binary from builder
-COPY --from=builder /app/main .
-
-# Run the application
-CMD ["./main"]
+# Build simulator image
+FROM base AS simulator
+RUN CGO_ENABLED=0 GOOS=linux go build -o simulator ./cmd/simulator/main.go && \
+    chmod +x simulator
+CMD ["./simulator"]

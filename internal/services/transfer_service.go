@@ -14,6 +14,10 @@ type TransferService struct {
 	transferRepo *repositories.TransferRepository
 }
 
+func (s *TransferService) AccountRepo() *repositories.AccountRepository {
+	return s.accountRepo
+}
+
 func NewTransferService(accountRepo *repositories.AccountRepository, transferRepo *repositories.TransferRepository) *TransferService {
 	return &TransferService{
 		accountRepo:  accountRepo,

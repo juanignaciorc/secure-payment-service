@@ -5,16 +5,20 @@ import (
 	"fmt"
 	"net/http"
 	"secure-payment-service/internal/models"
+	"secure-payment-service/internal/repositories"
 	"secure-payment-service/internal/services"
+	"time"
 )
 
 type TransferHandler struct {
 	transferService *services.TransferService
+	accountRepo    *repositories.AccountRepository
 }
 
-func NewTransferHandler(transferService *services.TransferService) *TransferHandler {
+func NewTransferHandler(transferService *services.TransferService, accountRepo *repositories.AccountRepository) *TransferHandler {
 	return &TransferHandler{
 		transferService: transferService,
+		accountRepo:     accountRepo,
 	}
 }
 
@@ -67,6 +71,7 @@ func (h *TransferHandler) UpdateTransferStatus(w http.ResponseWriter, r *http.Re
 		return
 	}
 
+	// Simulate the bank notification
 	err := h.transferService.UpdateTransferStatus(ctx, transferID, models.TransferStatus(status))
 	if err != nil {
 		handleError(w, http.StatusInternalServerError, err)
@@ -74,6 +79,38 @@ func (h *TransferHandler) UpdateTransferStatus(w http.ResponseWriter, r *http.Re
 	}
 
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Transfer status updated successfully"))
+}
+
+func (h *TransferHandler) CreateAccount(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	var account models.Account
+
+	if err := json.NewDecoder(r.Body).Decode(&account); err != nil {
+		handleError(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if account.ID == "" {
+		handleError(w, http.StatusBadRequest, fmt.Errorf("account ID is required"))
+		return
+	}
+
+	if account.Balance < 0 {
+		handleError(w, http.StatusBadRequest, fmt.Errorf("initial balance must be non-negative"))
+		return
+	}
+
+	account.CreatedAt = time.Now()
+	
+	if err := h.transferService.AccountRepo().CreateAccount(ctx, &account); err != nil {
+		handleError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(account)
 }
 
 func (h *TransferHandler) GetAccountBalance(w http.ResponseWriter, r *http.Request) {

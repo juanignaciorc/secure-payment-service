@@ -39,7 +39,7 @@ func main() {
 	transferService := services.NewTransferService(accountRepo, transferRepo)
 
 	// Initialize handlers
-	transferHandler := handlers.NewTransferHandler(transferService)
+	transferHandler := handlers.NewTransferHandler(transferService, accountRepo)
 	webhookHandler := handlers.NewWebhookHandler(transferService, logger)
 
 	// Initialize transfer status checker
@@ -56,7 +56,12 @@ func main() {
 	mux.HandleFunc("/api/transfers", transferHandler.CreateTransfer)
 	mux.HandleFunc("/api/transfers/status", transferHandler.UpdateTransferStatus)
 	mux.HandleFunc("/api/transfers/info", transferHandler.GetTransfer)
-	mux.HandleFunc("/api/accounts/balance", transferHandler.GetAccountBalance)
+	mux.HandleFunc("/api/accounts", transferHandler.CreateAccount)
+mux.HandleFunc("/api/accounts/balance", transferHandler.GetAccountBalance)
+mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("OK"))
+})
 	mux.HandleFunc("/api/webhook/transfer", webhookHandler.HandleWebhook)
 
 	// Start server
