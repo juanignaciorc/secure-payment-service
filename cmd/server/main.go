@@ -6,10 +6,10 @@ import (
 
 	"secure-payment-service/internal/config"
 	"secure-payment-service/internal/handlers"
-	"secure-payment-service/internal/repositories"
-	"secure-payment-service/internal/services"
 	"secure-payment-service/internal/logging"
 	"secure-payment-service/internal/migrations"
+	"secure-payment-service/internal/repositories"
+	"secure-payment-service/internal/services"
 	"secure-payment-service/internal/workers"
 	"time"
 )
@@ -57,11 +57,11 @@ func main() {
 	mux.HandleFunc("/api/transfers/status", transferHandler.UpdateTransferStatus)
 	mux.HandleFunc("/api/transfers/info", transferHandler.GetTransfer)
 	mux.HandleFunc("/api/accounts", transferHandler.CreateAccount)
-mux.HandleFunc("/api/accounts/balance", transferHandler.GetAccountBalance)
-mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("OK"))
-})
+	mux.HandleFunc("/api/accounts/balance", transferHandler.GetAccountBalance)
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK"))
+	})
 	mux.HandleFunc("/api/webhook/transfer", webhookHandler.HandleWebhook)
 
 	// Start server

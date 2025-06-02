@@ -1,109 +1,189 @@
 # Secure Payment Service
 
-A microservice for handling secure bank account transfers with Go.
+A microservice for handling secure bank account transfers with Go. This service includes three main components:
+- Payment service (main API)
+- Transfer processor (simulates external bank processing)
+- PostgreSQL database
 
 ## 🚀 Quick Start
 
 1. **Prerequisites**
-   - Docker installed
+   - Docker and Docker Compose installed
 
 2. **Build and Run Services**
    ```bash
-   # Build the service
-   docker build -t payment-service .
+   # 1. Clean up any existing containers and networks
+   docker compose down -v
    
-   # Run the database container
-   docker run --name payment-db -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=payment_db -p 5432:5432 -d postgres
+   # 2. Build and start all services
+   docker compose up -d --build
    
-   # Run the service
-   docker run --name payment-service --link payment-db:db -p 8080:8080 -d payment-service
+   # Verify services are running
+   docker ps
    ```
 
-3. **Verify Services**
+3. **Service URLs**
    - Payment service: `http://localhost:8080`
+   - Transfer processor: `http://localhost:8081`
    - Database: `postgres://postgres:postgres@localhost:5432/payment_db`
 
 ## 🧪 Complete Test Flow
 
 ### 1. Initial Setup
 - All services will start automatically with Docker
-- Database is initialized with required tables
-- No manual setup needed
+- Database is initialized with seed data (two accounts: acc-100 and acc-200)
+- The transfer processor simulates external bank processing with 80% success rate
 
-### 2. Create Test Accounts
+### 2. Test Accounts (Pre-configured)
+Two accounts are pre-configured in the database:
+- `acc-100`: Initial balance 1000.00
+- `acc-200`: Initial balance 500.00
+
+You can verify their balances:
 ```bash
-# Create account 1 (sender)
-curl -X POST http://localhost:8080/api/accounts \
-  -H "Content-Type: application/json" \
-  -d '{"id": "acc-100", "balance": 1000.00}'
-
-# Create account 2 (receiver)
-curl -X POST http://localhost:8080/api/accounts \
-  -H "Content-Type: application/json" \
-  -d '{"id": "acc-200", "balance": 500.00}'
+curl "http://localhost:8080/api/accounts/balance?account_id=acc-100"
+curl "http://localhost:8080/api/accounts/balance?account_id=acc-200"
 ```
 
-### 3. Perform a Transfer
+### 3. Create a Transfer
 ```bash
 # Create a transfer request
 curl -X POST http://localhost:8080/api/transfers \
   -H "Content-Type: application/json" \
-  -d '{"id": "transfer-001", "from_account": "acc-100", "to_account": "acc-200", "amount": 200.00}'
+  -d '{"id": "transfer-001", "from_account": "acc-100", "to_account": "acc-200", "amount": 150.00}'
 ```
 
-### 4. Verify Transfer Status
+### 4. Check Transfer Status
 ```bash
-# Check transfer status
+# Check initial status (will be PENDING)
 curl "http://localhost:8080/api/transfers/info?id=transfer-001"
 
-# Expected response: {"id":"transfer-001","status":"PENDING"}
+# Wait 1-5 seconds for processing
+sleep 5
+
+# Check final status (COMPLETED or FAILED)
+curl "http://localhost:8080/api/transfers/info?id=transfer-001"
 ```
 
-### 5. Update Transfer Status via Simulator
+### 5. Verify Balances
 ```bash
-# Update transfer status to COMPLETED
-curl "http://localhost:8081/api/transfers/status?id=transfer-001&status=COMPLETED"
-```
-
-### 6. Verify Final Balances
-```bash
-# Check sender's balance
+# Check sender's balance (should be reduced by 150 if successful)
 curl "http://localhost:8080/api/accounts/balance?account_id=acc-100"
-# Expected: 800.00
 
-# Check receiver's balance
+# Check receiver's balance (should be increased by 150 if successful)
 curl "http://localhost:8080/api/accounts/balance?account_id=acc-200"
-# Expected: 700.00
 ```
+
+## 📝 API Documentation
+
+### Health Check
+- `GET /health`
+  - Check service health
+  - Response: `"OK"`
+
+### Accounts API
+- `POST /api/accounts`
+  - Create new account
+  - Request: `{
+      "id": "account-id",
+      "balance": 1000.00
+    }`
+  - Response: `{
+      "id": "account-id",
+      "balance": 1000.00,
+      "created_at": "timestamp",
+      "updated_at": "timestamp"
+    }`
+
+- `GET /api/accounts/balance?account_id=<id>`
+  - Get account balance
+  - Response: `{
+      "balance": 1000.00
+    }`
+
+### Transfers API
+- `POST /api/transfers`
+  - Create new transfer
+  - Request: `{
+      "id": "transfer-id",
+      "from_account": "from-id",
+      "to_account": "to-id",
+      "amount": 100.00
+    }`
+  - Response: `{
+      "id": "transfer-id",
+      "from_account": "from-id",
+      "to_account": "to-id",
+      "amount": 100.00,
+      "status": "PENDING",
+      "created_at": "timestamp",
+      "updated_at": "timestamp"
+    }`
+
+- `GET /api/transfers/info?id=<transfer-id>`
+  - Get transfer status
+  - Response: `{
+      "id": "transfer-id",
+      "from_account": "from-id",
+      "to_account": "to-id",
+      "amount": 100.00,
+      "status": "PENDING/COMPLETED/FAILED",
+      "created_at": "timestamp",
+      "updated_at": "timestamp"
+    }`
+
+### Webhook API
+- `POST /api/webhook/transfer`
+  - Handle transfer status updates from the transfer processor
+  - Request: `{
+      "transfer_id": "transfer-id",
+      "status": "COMPLETED/FAILED",
+      "message": "optional message"
+    }`
+  - Response: HTTP 200 if successful, error otherwise
+
+### Transfer Processor API
+- `POST /process_transfer`
+  - Internal endpoint for transfer processor
+  - Request: `{
+      "transfer_id": "transfer-id",
+      "amount": 100.00
+    }`
+  - Response: HTTP 202 if accepted, error otherwise
 
 ## 🛠️ Troubleshooting
 
 1. **If services don't start**
    - Ensure Docker and Docker Compose are installed
-   - Run `docker-compose down` to clean up previous containers
-   - Try rebuilding with `docker-compose up --build`
+   - Run `docker compose down -v` to clean up previous containers and volumes
+   - Try rebuilding with `docker compose up -d --build`
 
 2. **If database connection fails**
-   - Wait a few seconds for database initialization
+   - Wait 10-15 seconds for database initialization
    - Check if PostgreSQL is running with `docker ps`
+   - Verify database logs with `docker logs secure-payment-service-postgres-1`
 
 3. **If transfer fails**
    - Verify account balances are sufficient
-   - Check transfer ID format
+   - Check transfer ID format (should be unique)
    - Ensure accounts exist
+   - Wait for processing time (1-5 seconds)
+   - Check transfer processor logs with `docker logs secure-payment-service-transfer-processor-1`
 
-## 📝 API Documentation
-
-### Accounts
-- `POST /api/accounts`: Create new account
-- `GET /api/accounts/balance`: Get account balance
-
-### Transfers
-- `POST /api/transfers`: Create new transfer
-- `GET /api/transfers/info`: Get transfer status
-- `GET /api/transfers/status`: Update transfer status (via simulator)
+4. **Common Issues**
+   - Transfer ID must be unique
+   - From account must have sufficient balance
+   - Processing time is simulated (1-5 seconds)
+   - Success rate is 80% (20% chance of failure)
 
 ## 🧹 Clean Up
+
+To stop and clean up all services:
+```bash
+docker compose down -v
+```
+
+This will remove all containers and volumes, including the database data.
 
 To stop and clean up all services:
 ```bash

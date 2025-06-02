@@ -45,7 +45,7 @@ func (c *TransferStatusChecker) checkPendingTransfers(ctx context.Context) {
 	}
 
 	for _, transfer := range transfers {
-		// Aquí podrías implementar la lógica de reintentar el pago o marcar como failed
+		// Aquí implementar la lógica de reintentar el pago o marcar como failed
 		// Por ejemplo:
 		if err := c.transferService.UpdateTransferStatus(ctx, transfer.ID, models.TransferStatusFailed); err != nil {
 			// Log the error

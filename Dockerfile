@@ -17,8 +17,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o server ./cmd/server/main.go && \
     chmod +x server
 CMD ["./server"]
 
-# Build simulator image
-FROM base AS simulator
-RUN CGO_ENABLED=0 GOOS=linux go build -o simulator ./cmd/simulator/main.go && \
-    chmod +x simulator
-CMD ["./simulator"]
+# Build transfer processor image
+FROM base AS transfer-processor
+RUN CGO_ENABLED=0 GOOS=linux go build -o transfer-processor ./cmd/transfer-processor/main.go && \
+    chmod +x transfer-processor
+CMD ["./transfer-processor"]

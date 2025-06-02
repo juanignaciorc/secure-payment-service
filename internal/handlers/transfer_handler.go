@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -31,9 +32,35 @@ func (h *TransferHandler) CreateTransfer(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	// Create transfer record
 	err := h.transferService.CreateTransfer(ctx, &transfer)
 	if err != nil {
 		handleError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// Send transfer processing request to transfer processor
+	transferProcessorURL := "http://transfer-processor:8081/process_transfer"
+	transferPayload := map[string]interface{}{
+		"transfer_id": transfer.ID,
+		"amount":      transfer.Amount,
+	}
+
+	jsonPayload, err := json.Marshal(transferPayload)
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp, err := http.Post(transferProcessorURL, "application/json", bytes.NewBuffer(jsonPayload))
+	if err != nil {
+		handleError(w, http.StatusInternalServerError, err)
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusAccepted {
+		handleError(w, http.StatusInternalServerError, fmt.Errorf("transfer processor failed to process transfer: %d", resp.StatusCode))
 		return
 	}
 
