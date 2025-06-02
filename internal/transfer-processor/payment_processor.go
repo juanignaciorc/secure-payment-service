@@ -58,7 +58,7 @@ func (p *PaymentProcessor) ProcessTransfer(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusAccepted)
 	json.NewEncoder(w).Encode(map[string]string{
 		"message":                   "Transfer processing started",
-		"estimated_processing_time": fmt.Sprintf("%d seconds", processingTime.Seconds()),
+		"estimated_processing_time": fmt.Sprintf("%.0f seconds", processingTime.Seconds()),
 	})
 }
 

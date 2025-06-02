@@ -6,19 +6,19 @@ import (
 	"time"
 
 	"secure-payment-service/internal/models"
-	"secure-payment-service/internal/repositories"
+	"secure-payment-service/internal/repositories/interfaces"
 )
 
 type TransferService struct {
-	accountRepo  *repositories.AccountRepository
-	transferRepo *repositories.TransferRepository
+	accountRepo  interfaces.AccountRepository
+	transferRepo interfaces.TransferRepository
 }
 
-func (s *TransferService) AccountRepo() *repositories.AccountRepository {
+func (s *TransferService) AccountRepo() interfaces.AccountRepository {
 	return s.accountRepo
 }
 
-func NewTransferService(accountRepo *repositories.AccountRepository, transferRepo *repositories.TransferRepository) *TransferService {
+func NewTransferService(accountRepo interfaces.AccountRepository, transferRepo interfaces.TransferRepository) *TransferService {
 	return &TransferService{
 		accountRepo:  accountRepo,
 		transferRepo: transferRepo,
